@@ -1,11 +1,11 @@
 from typing import Optional
 from langgraph.graph import StateGraph, END
-from my_agent.utils.nodes import call_model, should_continue, should_interrupt_before
+from my_agent.utils.nodes import call_model, should_continue, tool_node
 from my_agent.utils.state import AgentState
 from pydantic import BaseModel, Field
 
 class GraphConfigPydantic(BaseModel):
-    modelName: Optional[str] = Field(
+    model_name: Optional[str] = Field(
         default="anthropic/claude-3-7-sonnet-latest",
         metadata={
             "x_lg_ui_config": {
@@ -43,18 +43,18 @@ class GraphConfigPydantic(BaseModel):
             }
         }
     )
-    maxTokens: Optional[int] = Field(
-        default=1000,
+    max_tokens: Optional[int] = Field(
+        default=4000,
         metadata={
             "x_lg_ui_config": {
                 "type": "number",
-                "default": 1000,
+                "default": 4000,
                 "min": 1,
                 "description": "The maximum number of tokens to generate",
             }
         }
     )
-    systemPrompt: Optional[str] = Field(
+    system_prompt: Optional[str] = Field(
         default=None,
         metadata={
             "x_lg_ui_config": {
@@ -70,8 +70,7 @@ workflow = StateGraph(AgentState, config_schema=GraphConfigPydantic)
 
 # Define the two nodes we will cycle between
 workflow.add_node("agent", call_model)
-# workflow.add_node("action", tool_node)
-workflow.add_node("should_interrupt_before", should_interrupt_before)
+workflow.add_node("action", tool_node)
 
 # Set the entrypoint as `agent`
 # This means that this node is the first one called
@@ -92,7 +91,7 @@ workflow.add_conditional_edges(
     # Based on which one it matches, that node will then be called.
     {
         # If `tools`, then we call the tool node.
-        "should_interrupt_before": "should_interrupt_before",
+        "continue": "action",
         # Otherwise we finish.
         "end": END,
     },
@@ -100,9 +99,9 @@ workflow.add_conditional_edges(
 
 # We now add a normal edge from `tools` to `agent`.
 # This means that after `tools` is called, `agent` node is called next.
-# workflow.add_edge("action", "agent")
+workflow.add_edge("action", "agent")
 
 # Finally, we compile it!
 # This compiles it into a LangChain Runnable,
 # meaning you can use it as you would any other runnable
-graph = workflow.compile(interrupt_before=["should_interrupt_before"])
+graph = workflow.compile()
