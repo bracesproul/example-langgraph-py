@@ -1,8 +1,14 @@
-from typing import Optional
+from typing import Optional, List
 from langgraph.graph import StateGraph, END
 from my_agent.utils.nodes import call_model, should_continue, tool_node
 from my_agent.utils.state import AgentState
 from pydantic import BaseModel, Field
+
+class RagConfig(BaseModel):
+    rag_url: Optional[str]
+    """The URL of the rag server"""
+    collection: Optional[str]
+    """The collection to use for rag"""
 
 class GraphConfigPydantic(BaseModel):
     model_name: Optional[str] = Field(
@@ -61,6 +67,35 @@ class GraphConfigPydantic(BaseModel):
                 "type": "textarea",
                 "placeholder": "Enter a system prompt...",
                 "description": "The system prompt to use in all generations",
+            }
+        }
+    )
+    mcp_server_url: Optional[str] = Field(
+        default=None,
+        metadata={
+            "x_lg_ui_config": {
+                "type": "mcp_server_url"
+            }
+        }
+    )
+    oap_enabled_tools: Optional[List[str]] = Field(
+        default=None,
+        metadata={
+            "x_lg_ui_config": {
+                "type": "tools_list",
+                "default": ["Math.Divide", "Math.Mod"],
+            }
+        }
+    )
+    rag: Optional[RagConfig] = Field(
+        default=None,
+        metadata={
+            "x_lg_ui_config": {
+                "type": "rag",
+                # Here is where you would set the default collection.
+                # "default": {
+                #     "collection": "my_collection"
+                # }
             }
         }
     )
